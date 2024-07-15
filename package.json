@@ -13,8 +13,10 @@
   },
   "dependencies": {
     "@types/chance": "^1.1.6",
+    "@types/matter-js": "^0.19.6",
     "chance": "^1.1.11",
     "eslint": "^9.3.0",
+    "matter-js": "^0.20.0",
     "pixi.js": "^8.1.6",
     "typescript": "^5.4.5",
     "vite-plugin-eslint": "^1.8.1"

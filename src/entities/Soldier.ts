@@ -1,42 +1,27 @@
-import { Color, Container, Sprite, Assets, Texture } from "pixi.js";
+import { Color, Container, Sprite, Assets, Texture, Point } from "pixi.js";
 import { clamp } from "../utils";
-import Mouse from "./Mouse";
+import PhysicsEntity from "./PhysicsEntity";
+import GameTime from "../GameTime";
+import Enemy from "./Enemy";
+import HealthBar from "./HealthBar";
 
-export default class Soldier extends Container {
-  worldScale = 0.5;
-
-  headContainer: Container;
+class Head extends Container {
   helmetContainer: Container;
-  helmet: Sprite;
-  face: Sprite;
-
-  bodyContainer: Container;
-  body: Sprite;
-  gun: Sprite;
-  shadow: Sprite;
-
-  idleAnimationOffset: number;
-  idleAnimationSpeed: number;
 
   constructor() {
     super();
 
-    this.idleAnimationOffset = Math.random() * 100;
-    this.idleAnimationSpeed = 0.5 + Math.random() * 0.5;
-    // this.worldScale = 0.9 + Math.random() * 0.1;
-
-    this.headContainer = new Container();
-    this.headContainer.zIndex = 3;
-    this.headContainer.position.set(0, -95);
-
     const uniformTint = 200 + Math.round(Math.random() * 55);
+
+    this.zIndex = 3;
+    this.position.set(0, -95);
 
     this.helmetContainer = new Container();
 
-    this.helmet = new Sprite(Assets.get<Texture>("soldier-helmet"));
-    this.helmet.anchor.set(0.5, 0.8);
-    this.helmet.position.set(0, -35);
-    this.helmet.tint = new Color(
+    const helmet = new Sprite(Assets.get<Texture>("soldier-helmet"));
+    helmet.anchor.set(0.5, 0.8);
+    helmet.position.set(0, -35);
+    helmet.tint = new Color(
       `rgb(${uniformTint}, ${uniformTint}, ${uniformTint})`
     );
 
@@ -54,27 +39,34 @@ export default class Soldier extends Container {
     helmetCamo.blendMode = "multiply";
     helmetCamo.alpha = 0.3;
 
-    this.helmetContainer.addChild(this.helmet);
+    this.helmetContainer.addChild(helmet);
     this.helmetContainer.addChild(helmetMask);
     this.helmetContainer.addChild(helmetCamo);
     this.helmetContainer.mask = helmetMask;
 
-    this.face = new Sprite(Assets.get<Texture>("soldier-head"));
-    this.face.anchor.set(0.5, 1);
-    this.face.position.set(0, 0);
+    const face = new Sprite(Assets.get<Texture>("soldier-head"));
+    face.anchor.set(0.5, 1);
+    face.position.set(0, 0);
 
     const skinTint = 100 + Math.round(Math.random() * 155);
-    this.face.tint = new Color(`rgb(${skinTint}, ${skinTint}, ${skinTint})`);
+    face.tint = new Color(`rgb(${skinTint}, ${skinTint}, ${skinTint})`);
 
-    this.headContainer.addChild(this.face);
-    this.headContainer.addChild(this.helmetContainer);
+    this.addChild(face);
+    this.addChild(this.helmetContainer);
+  }
+}
 
-    this.bodyContainer = new Container();
-    this.bodyContainer.zIndex = 2;
+class Body extends Container {
+  constructor() {
+    super();
 
-    this.body = new Sprite(Assets.get<Texture>("soldier-body"));
-    this.body.anchor.set(0.5, 1);
-    this.body.tint = new Color(
+    const uniformTint = 200 + Math.round(Math.random() * 55);
+
+    this.zIndex = 2;
+
+    const body = new Sprite(Assets.get<Texture>("soldier-body"));
+    body.anchor.set(0.5, 1);
+    body.tint = new Color(
       `rgb(${uniformTint}, ${uniformTint}, ${uniformTint})`
     );
 
@@ -91,49 +83,142 @@ export default class Soldier extends Container {
     bodyCamo.blendMode = "multiply";
     bodyCamo.alpha = 0.3;
 
-    this.bodyContainer.addChild(this.body);
-    this.bodyContainer.addChild(bodyMask);
-    this.bodyContainer.addChild(bodyCamo);
-    this.bodyContainer.mask = bodyMask;
+    this.addChild(body);
+    this.addChild(bodyMask);
+    this.addChild(bodyCamo);
+    this.mask = bodyMask;
+  }
+}
+
+class Gun extends Container {
+  constructor() {
+    super();
+
+    this.position.set(0, -60);
+
+    const gun = new Sprite(Assets.get<Texture>("soldier-gun"));
+    gun.anchor.set(0.4, 0.4);
+    gun.zIndex = 5;
+
+    this.addChild(gun);
+  }
+}
+
+export default class Soldier extends PhysicsEntity {
+  worldScale = 0.5;
+
+  healthBar: HealthBar;
+  head: Head;
+  body: Body;
+
+  gun: Gun;
+  shadow: Sprite;
+
+  idleAnimationOffset: number;
+  idleAnimationSpeed: number;
+
+  walkSpeed = 0.2;
+
+  moveTarget?: Point;
+  activeEnemy?: Enemy;
+
+  constructor(x: number, y: number) {
+    super(x, y);
+
+    this.idleAnimationOffset = Math.random() * 100;
+    this.idleAnimationSpeed = 0.5 + Math.random() * 0.5;
+
+    this.head = new Head();
+    this.body = new Body();
+    this.gun = new Gun();
 
     this.shadow = new Sprite(Assets.get<Texture>("soldier-shadow"));
     this.shadow.anchor.set(0.5, 0.5);
     this.shadow.zIndex = 0;
 
-    this.gun = new Sprite(Assets.get<Texture>("soldier-gun"));
-    this.gun.anchor.set(0.4, 0.4);
-    this.gun.position.set(0, -60);
-    this.gun.zIndex = 5;
+    this.healthBar = new HealthBar(80, 100);
 
     // Add to stage
     this.addChild(this.shadow);
-    this.addChild(this.bodyContainer);
+    this.addChild(this.body);
     this.addChild(this.gun);
-    this.addChild(this.headContainer);
+    this.addChild(this.head);
+    this.addChild(this.healthBar);
 
     this.scale.set(this.worldScale);
+
+    this.position.set(x, y);
   }
 
-  update(elapsedTime: number, mouse: Mouse) {
+  moveTo(target: Point) {
+    this.moveTarget = target;
+  }
+
+  updatePosition(time: GameTime) {
+    if (this.moveTarget) {
+      const distance = new Point(
+        this.moveTarget.x - this.position.x,
+        this.moveTarget.y - this.position.y
+      );
+
+      const magnitude = Math.sqrt(
+        distance.x * distance.x + distance.y * distance.y
+      );
+
+      const distanceNormalized = new Point(
+        distance.x / magnitude,
+        distance.y / magnitude
+      );
+
+      this.setPosition(
+        this.rigidBody.position.x +
+          distanceNormalized.x * time.deltaMs * this.walkSpeed,
+        this.rigidBody.position.y +
+          distanceNormalized.y * time.deltaMs * this.walkSpeed
+      );
+
+      if (magnitude < 10) {
+        this.moveTarget = undefined;
+      }
+    }
+
+    this.position.set(
+      this.rigidBody.position.x,
+      this.rigidBody.position.y + 20
+    );
+  }
+
+  updateAnimation(time: GameTime) {
+    if (!this.activeEnemy) {
+      return;
+    }
+
+    const dx = this.activeEnemy.x - this.position.x;
+    const dy =
+      this.activeEnemy.y -
+      this.activeEnemy.height * 0.3 -
+      this.position.y +
+      70 * this.worldScale;
+    const angleToMouse = Math.atan2(dy, dx);
+
+    // Gun
     const gunMovementRange = 40 * this.worldScale;
 
-    const gunBobX = Math.cos(this.idleAnimationOffset + elapsedTime * 0.002);
+    const gunBobX = Math.cos(this.idleAnimationOffset + time.totalMs * 0.002);
     const gunBobY =
-      Math.sin(this.idleAnimationOffset + elapsedTime * 0.002) *
+      Math.sin(this.idleAnimationOffset + time.totalMs * 0.002) *
       3 *
       this.idleAnimationSpeed;
 
-    const dx = mouse.x - this.position.x;
-    const dy = mouse.y - this.position.y + 70 * this.worldScale;
-    const angle = Math.atan2(dy, dx);
+    this.gun.rotation = angleToMouse;
 
-    this.gun.rotation = angle;
+    const isFlipped =
+      angleToMouse < -(Math.PI / 2) || angleToMouse > Math.PI / 2;
+    const isBehind =
+      angleToMouse > -Math.PI + Math.PI / 4 && angleToMouse < -Math.PI / 4;
 
-    const isFlipped = angle < -(Math.PI / 2) || angle > Math.PI / 2;
-    const isBehind = angle > -Math.PI + Math.PI / 4 && angle < -Math.PI / 4;
-
-    let moveX = clamp(dx * 0.1, -gunMovementRange, gunMovementRange);
-    let moveY = clamp(dy * 0.1, -gunMovementRange, gunMovementRange);
+    const moveX = clamp(dx * 0.1, -gunMovementRange, gunMovementRange);
+    const moveY = clamp(dy * 0.1, -gunMovementRange, gunMovementRange);
 
     const distance = Math.sqrt(moveX * moveX + moveY * moveY);
     const distanceProgress = distance / gunMovementRange;
@@ -146,29 +231,60 @@ export default class Soldier extends Container {
 
     this.gun.zIndex = isBehind ? 1 : 5;
 
-    // Top right = -Math.PI/8
-    // Bottom right = Math.PI/8
-
-    let headMoveX = clamp(dx * 0.1, -10, 10);
-    let headMoveY = clamp(dy * 0.1, -5, 5);
+    // Head
+    const headMoveX = clamp(dx * 0.1, -10, 10);
+    const headMoveY = clamp(dy * 0.1, -5, 5);
 
     const isMouseRight = dx > 0;
     const range = Math.abs(dx) / (window.innerWidth / 2);
-    const headAngle = range * (isMouseRight ? -0.2 : 0.2); // clamp(-range, -0.2, 0);
+    const headAngle = range * (isMouseRight ? -0.2 : 0.2);
 
     const headSway =
-      Math.cos(this.idleAnimationOffset + elapsedTime * 0.0005) *
+      Math.cos(this.idleAnimationOffset + time.totalMs * 0.0005) *
       0.1 *
       this.idleAnimationSpeed;
 
-    this.headContainer.rotation = headAngle + headSway;
-    // this.helmet.rotation = headAngle * 0.5;
+    this.head.rotation = headAngle + headSway;
+    this.head.position.set(0 + headMoveX, -95 + headMoveY);
 
-    this.headContainer.position.set(0 + headMoveX, -95 + headMoveY);
-    this.shadow.position.set(
-      this.headContainer.position.x * 0.25,
-      headMoveY * 0.25
-    );
+    // Shadow
+    this.shadow.position.set(this.head.position.x * 0.5, headMoveY * 0.25);
+  }
+
+  findEnemy(entities: Container) {
+    if (!entities.children.length) {
+      return;
+    }
+
+    let closestDistance = Number.MAX_VALUE;
+
+    for (let i = 0; i < entities.children.length; i++) {
+      if (!(entities.children[i] instanceof Enemy)) {
+        continue;
+      }
+
+      const direction = new Point(
+        entities.children[i].position.x - this.position.x,
+        entities.children[i].position.y - this.position.y
+      );
+
+      const distance = Math.sqrt(
+        direction.x * direction.x + direction.y * direction.y
+      );
+
+      if (distance < closestDistance) {
+        closestDistance = distance;
+        this.activeEnemy = entities.children[i] as Enemy;
+      }
+    }
+  }
+
+  update(time: GameTime, entities: Container) {
+    this.updatePosition(time);
+
+    this.findEnemy(entities);
+
+    this.updateAnimation(time);
   }
 
   static assetBundle() {
