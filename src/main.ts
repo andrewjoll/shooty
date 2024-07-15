@@ -1,11 +1,14 @@
 import "./style.css";
 import { Application, Assets, Container, Point } from "pixi.js";
+import "pixi.js/math-extras";
 import Soldier from "./entities/Soldier";
 import Mouse from "./entities/Mouse";
 import { Bodies, Composite, Engine, Render } from "matter-js";
 import GameTime from "./GameTime";
 import Enemy from "./entities/Enemy";
 import { initDebugGraphics } from "./DebugGraphics";
+import Barrel from "./entities/Barrel";
+import EntityManager from "./EntityManager";
 
 const mouse = new Mouse();
 
@@ -44,6 +47,8 @@ const render = Render.create({
   },
 });
 
+const entityManager = new EntityManager(engine);
+
 render.canvas.classList.add("matter");
 
 const wallWidth = 40;
@@ -54,6 +59,9 @@ const leftWall = Bodies.rectangle(
   wallWidth,
   window.innerHeight,
   {
+    collisionFilter: {
+      group: -1,
+    },
     isStatic: true,
     render: {
       fillStyle: "rgba(255, 255, 255, 0.1)",
@@ -69,6 +77,9 @@ const rightWall = Bodies.rectangle(
   wallWidth,
   window.innerHeight,
   {
+    collisionFilter: {
+      group: -1,
+    },
     isStatic: true,
     render: {
       fillStyle: "rgba(255, 255, 255, 0.1)",
@@ -84,6 +95,9 @@ const topWall = Bodies.rectangle(
   window.innerWidth,
   wallWidth,
   {
+    collisionFilter: {
+      group: -1,
+    },
     isStatic: true,
     render: {
       fillStyle: "rgba(255, 255, 255, 0.1)",
@@ -99,6 +113,9 @@ const bottomWall = Bodies.rectangle(
   window.innerWidth,
   wallWidth,
   {
+    collisionFilter: {
+      group: -1,
+    },
     isStatic: true,
     render: {
       fillStyle: "rgba(255, 255, 255, 0.1)",
@@ -115,40 +132,33 @@ Composite.add(engine.world, [leftWall, rightWall, topWall, bottomWall]);
 
 Assets.addBundle("soldier", Soldier.assetBundle());
 Assets.addBundle("mouse", Mouse.assetBundle());
+Assets.addBundle("barrel", Barrel.assetBundle());
 
 await Assets.loadBundle("mouse");
 await Assets.loadBundle("soldier");
-
-// Then adding the application's canvas to the DOM body.
+await Assets.loadBundle("barrel");
 
 document.body.appendChild(app.canvas);
 
 const layerGround = new Container();
-const layerEntities = new Container();
 const layerDebug = new Container();
 
 initDebugGraphics(layerDebug);
 
-const enemies: Array<Enemy> = [];
-
 const soldier = new Soldier(window.innerWidth / 2, window.innerHeight / 2);
+const barrel = new Barrel(700, 200);
 
 layerGround.addChild(mouse);
-layerEntities.addChild(soldier);
-layerEntities.sortableChildren = true;
 
-app.stage.addChild(layerGround, layerEntities, layerDebug);
+entityManager.addEntity(soldier);
+entityManager.addEntity(barrel);
 
-Composite.add(engine.world, [soldier.rigidBody]);
+app.stage.addChild(layerGround, entityManager.container, layerDebug);
 
 for (let i = 0; i < 5; i++) {
   const enemy = new Enemy(300 + i * 100, 300 + i * 100);
 
-  layerEntities.addChild(enemy);
-
-  enemies.push(enemy);
-
-  Composite.add(engine.world, enemy.rigidBody);
+  entityManager.addEntity(enemy);
 }
 
 const gameTime = new GameTime();
@@ -156,13 +166,9 @@ const gameTime = new GameTime();
 gameTime.onTick((time) => {
   Engine.update(engine, time.deltaMs);
 
-  soldier.update(time, layerEntities);
+  entityManager.update(time, mouse);
 
-  enemies.forEach((enemy) => enemy.update(time));
-
-  layerEntities.children.forEach((child) => {
-    child.zIndex = child.position.y;
-  });
+  barrel.update();
 });
 
 window.addEventListener("click", (event) => {

@@ -4,6 +4,7 @@ import PhysicsEntity from "./PhysicsEntity";
 import GameTime from "../GameTime";
 import Enemy from "./Enemy";
 import HealthBar from "./HealthBar";
+import Mouse from "./Mouse";
 
 class Head extends Container {
   helmetContainer: Container;
@@ -188,17 +189,9 @@ export default class Soldier extends PhysicsEntity {
     );
   }
 
-  updateAnimation(time: GameTime) {
-    if (!this.activeEnemy) {
-      return;
-    }
-
-    const dx = this.activeEnemy.x - this.position.x;
-    const dy =
-      this.activeEnemy.y -
-      this.activeEnemy.height * 0.3 -
-      this.position.y +
-      70 * this.worldScale;
+  updateAnimation(time: GameTime, mouse: Mouse) {
+    const dx = mouse.x - this.position.x;
+    const dy = mouse.y - this.position.y + 70 * this.worldScale;
     const angleToMouse = Math.atan2(dy, dx);
 
     // Gun
@@ -251,40 +244,12 @@ export default class Soldier extends PhysicsEntity {
     this.shadow.position.set(this.head.position.x * 0.5, headMoveY * 0.25);
   }
 
-  findEnemy(entities: Container) {
-    if (!entities.children.length) {
-      return;
-    }
-
-    let closestDistance = Number.MAX_VALUE;
-
-    for (let i = 0; i < entities.children.length; i++) {
-      if (!(entities.children[i] instanceof Enemy)) {
-        continue;
-      }
-
-      const direction = new Point(
-        entities.children[i].position.x - this.position.x,
-        entities.children[i].position.y - this.position.y
-      );
-
-      const distance = Math.sqrt(
-        direction.x * direction.x + direction.y * direction.y
-      );
-
-      if (distance < closestDistance) {
-        closestDistance = distance;
-        this.activeEnemy = entities.children[i] as Enemy;
-      }
-    }
-  }
-
-  update(time: GameTime, entities: Container) {
+  update(time: GameTime, mouse: Mouse) {
     this.updatePosition(time);
 
-    this.findEnemy(entities);
+    // this.findEnemy(entities);
 
-    this.updateAnimation(time);
+    this.updateAnimation(time, mouse);
   }
 
   static assetBundle() {

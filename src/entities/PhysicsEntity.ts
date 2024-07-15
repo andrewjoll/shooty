@@ -1,7 +1,13 @@
 import { Bodies, Body } from "matter-js";
 import { Container } from "pixi.js";
+import GameTime from "../GameTime";
+import Mouse from "./Mouse";
 
-export default class PhysicsEntity extends Container {
+interface IEntity {
+  update(time: GameTime, mouse: Mouse): void;
+}
+
+export default class PhysicsEntity extends Container implements IEntity {
   rigidBody: Body;
 
   constructor(x: number, y: number) {
@@ -21,4 +27,6 @@ export default class PhysicsEntity extends Container {
   setPosition(x: number, y: number) {
     Body.setPosition(this.rigidBody, { x, y });
   }
+
+  update(time: GameTime, mouse: Mouse) {}
 }

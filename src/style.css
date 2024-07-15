@@ -1,5 +1,6 @@
 body {
     margin: 0;
+    overflow: hidden;
 }
 
 canvas {
@@ -13,6 +14,6 @@ canvas {
     top: 0;
     left: 0;
     z-index: 10;
-    opacity: 0;
+    opacity: 1;
     pointer-events: none;
 }
