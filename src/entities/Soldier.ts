@@ -1,4 +1,12 @@
-import { Color, Container, Sprite, Assets, Texture, Point } from "pixi.js";
+import {
+  Color,
+  Container,
+  Sprite,
+  Assets,
+  Texture,
+  Point,
+  Graphics,
+} from "pixi.js";
 import { clamp } from "../utils";
 import Entity, { EntityState } from "./Entity";
 import GameTime from "../GameTime";
@@ -100,12 +108,12 @@ class Gun extends Container {
     this.position.set(0, -60);
 
     const gun = new Sprite(Assets.get<Texture>("soldier-gun"));
-    gun.anchor.set(0.5, 0.4);
+    gun.anchor.set(0.4, 0.4);
     gun.zIndex = 5;
 
     this.flash = new Sprite(Assets.get<Texture>("soldier-muzzleFlash"));
     this.flash.anchor.set(0, 0.5);
-    this.flash.position.set(110, -9);
+    this.flash.position.set(120, -9);
     this.flash.alpha = 0;
     this.flash.blendMode = "add";
 
@@ -122,6 +130,8 @@ export default class Soldier extends Entity {
 
   gun: Gun;
   shadow: Sprite;
+
+  debug: Graphics;
 
   idleAnimationOffset: number;
   idleAnimationSpeed: number;
@@ -148,6 +158,9 @@ export default class Soldier extends Entity {
 
     this.healthBar = new HealthBar(80, 100);
 
+    this.debug = new Graphics();
+    this.addChild(this.debug);
+
     // Add to stage
     this.addChild(this.shadow);
     this.addChild(this.body);
@@ -170,6 +183,35 @@ export default class Soldier extends Entity {
 
   moveTo(target: Point) {
     this.moveTarget = target;
+  }
+
+  updateDebug(mouse: Mouse) {
+    this.debug.clear();
+
+    // Location
+    this.debug.circle(0, 0, 10);
+    this.debug.fill("rgb(255, 255, 255)");
+
+    // Range clamped query trace
+    const rangePoint = this.getRangeClampedTarget(mouse.position);
+    const doubleRangePoint = rangePoint.multiplyScalar(2);
+    const actualRange = rangePoint.magnitude();
+
+    this.debug.circle(doubleRangePoint.x, doubleRangePoint.y, 10);
+    this.debug.fill("rgb(0, 255, 0)");
+
+    // Attack range
+    this.debug.circle(0, 0, actualRange * 2);
+    this.debug.stroke({ color: "rgba(255, 255, 255, 0.3)", width: 3 });
+
+    // Attack angle
+    this.debug.lineTo(doubleRangePoint.x, doubleRangePoint.y);
+    this.debug.stroke({ color: "rgba(0, 255, 0, 0.5)", width: 2 });
+
+    // Weapon angle
+    this.debug.moveTo(0, -150 * this.scale.y);
+    this.debug.lineTo(doubleRangePoint.x, doubleRangePoint.y);
+    this.debug.stroke({ color: "rgba(255, 255, 255, 0.5)", width: 1 });
   }
 
   updatePosition(time: GameTime) {
@@ -207,9 +249,17 @@ export default class Soldier extends Entity {
   }
 
   updateAnimation(time: GameTime, mouse: Mouse) {
-    const dx = mouse.x - this.position.x;
-    const dy = mouse.y - this.position.y + 70 * this.scale.y;
-    const angleToMouse = Math.atan2(dy, dx);
+    this.attackVector = new Point(
+      mouse.x - this.position.x,
+      mouse.y - this.position.y
+    ).normalize();
+
+    this.weaponVector = new Point(
+      mouse.x - this.position.x,
+      mouse.y - this.position.y + 70 * this.scale.y
+    ).normalize();
+
+    this.weaponAngle = Math.atan2(this.weaponVector.y, this.weaponVector.x);
 
     // Gun
     if (this.isAttacking) {
@@ -221,9 +271,8 @@ export default class Soldier extends Entity {
 
     const gunMovementRange = 40 * this.worldScale;
 
-    const recoilDirection = new Point(dx, dy).normalize();
-    const recoilAmount = recoilDirection.multiplyScalar(
-      this.isAttacking ? Math.random() * 20 : 0
+    const recoilAmount = this.attackVector.multiplyScalar(
+      this.isAttacking ? Math.random() * -20 : 0
     );
 
     const gunBobX =
@@ -235,15 +284,24 @@ export default class Soldier extends Entity {
         this.idleAnimationSpeed +
       recoilAmount.y;
 
-    this.gun.rotation = angleToMouse;
+    this.gun.rotation = this.weaponAngle;
 
     const isFlipped =
-      angleToMouse < -(Math.PI / 2) || angleToMouse > Math.PI / 2;
+      this.weaponAngle < -(Math.PI / 2) || this.weaponAngle > Math.PI / 2;
     const isBehind =
-      angleToMouse > -Math.PI + Math.PI / 4 && angleToMouse < -Math.PI / 4;
+      this.weaponAngle > -Math.PI + Math.PI / 4 &&
+      this.weaponAngle < -Math.PI / 4;
 
-    const moveX = clamp(dx * 0.1, -gunMovementRange, gunMovementRange);
-    const moveY = clamp(dy * 0.1, -gunMovementRange, gunMovementRange);
+    const moveX = clamp(
+      this.attackVector.x * 3,
+      -gunMovementRange,
+      gunMovementRange
+    );
+    const moveY = clamp(
+      this.attackVector.y * 2,
+      -gunMovementRange,
+      gunMovementRange
+    );
 
     const distance = Math.sqrt(moveX * moveX + moveY * moveY);
     const distanceProgress = distance / gunMovementRange;
@@ -257,11 +315,11 @@ export default class Soldier extends Entity {
     this.gun.zIndex = isBehind ? 1 : 5;
 
     // Head
-    const headMoveX = clamp(dx * 0.1, -10, 10);
-    const headMoveY = clamp(dy * 0.1, -5, 5);
+    const headMoveX = clamp(this.attackVector.x * 3, -10, 10);
+    const headMoveY = clamp(this.attackVector.y * 2, -5, 5);
 
-    const isMouseRight = dx > 0;
-    const range = Math.abs(dx) / (window.innerWidth / 2);
+    const isMouseRight = this.attackVector.x > 0;
+    const range = Math.abs(this.attackVector.x) / (window.innerWidth / 2);
     const headAngle = range * (isMouseRight ? -0.2 : 0.2);
 
     const headSway =
@@ -282,6 +340,8 @@ export default class Soldier extends Entity {
     // this.findEnemy(entities);
 
     this.updateAnimation(time, mouse);
+
+    this.updateDebug(mouse);
   }
 
   static assetBundle() {

@@ -35,14 +35,21 @@ export default class EntityManager {
 
     const soldier = this.entities.find((entity) => entity instanceof Soldier);
 
-    if (soldier) {
-      this.queryRay(soldier.x, soldier.y, mouse.x, mouse.y);
+    if (soldier && soldier.isAttacking) {
+      const target = soldier.getRangeClampedTarget(mouse.position);
+
+      this.queryRay(
+        soldier.x,
+        soldier.y,
+        soldier.x + target.x,
+        soldier.y + target.y,
+        soldier
+      );
     }
   }
 
-  queryRay(x1: number, y1: number, x2: number, y2: number) {
+  queryRay(x1: number, y1: number, x2: number, y2: number, attacker: Entity) {
     const endPoint = new Point(x2, y2);
-    // const endPointProjected = endPoint.normalize();
 
     const result = Query.ray(
       this.physics.world.bodies,
@@ -54,9 +61,21 @@ export default class EntityManager {
       return;
     }
 
-    // result.forEach((collision) => {
-    //   collision.bodyA.render.fillStyle = "rgba(0, 255, 0, 0.2)";
-    //   collision.bodyB.render.fillStyle = "rgba(0, 255, 0, 0.2)";
-    // });
+    result.forEach((collision) => {
+      // ignore attacker
+      if (
+        collision.bodyA.plugin?.entity === attacker ||
+        collision.bodyB.plugin?.entity === attacker
+      ) {
+        return;
+      }
+
+      if (collision.bodyA.plugin?.entity) {
+        (collision.bodyA.plugin.entity as Entity).weaponHit(
+          attacker,
+          new Point(x2 - x1, y2 - y1).normalize()
+        );
+      }
+    });
   }
 }

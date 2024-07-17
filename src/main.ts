@@ -9,7 +9,6 @@ import Enemy from "./entities/Enemy";
 import { initDebugGraphics } from "./DebugGraphics";
 import Barrel from "./entities/Barrel";
 import EntityManager from "./EntityManager";
-import InputManager from "./InputManager";
 
 const mouse = new Mouse();
 
