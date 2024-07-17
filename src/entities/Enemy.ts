@@ -1,6 +1,6 @@
 import { Color, Container, Sprite, Assets, Texture, Point } from "pixi.js";
-import PhysicsEntity from "./PhysicsEntity";
 import GameTime from "../GameTime";
+import Entity from "./Entity";
 
 class Head extends Container {
   helmetContainer: Container;
@@ -46,7 +46,7 @@ class Body extends Container {
   }
 }
 
-export default class Enemy extends PhysicsEntity {
+export default class Enemy extends Entity {
   worldScale = 0.5;
 
   head: Head;

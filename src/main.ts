@@ -9,6 +9,7 @@ import Enemy from "./entities/Enemy";
 import { initDebugGraphics } from "./DebugGraphics";
 import Barrel from "./entities/Barrel";
 import EntityManager from "./EntityManager";
+import InputManager from "./InputManager";
 
 const mouse = new Mouse();
 
@@ -153,6 +154,9 @@ layerGround.addChild(mouse);
 entityManager.addEntity(soldier);
 entityManager.addEntity(barrel);
 
+// const emitter = new Emitter(soldier);
+// emitter.position.set(soldier.position.x, soldier.position.y);
+
 app.stage.addChild(layerGround, entityManager.container, layerDebug);
 
 for (let i = 0; i < 5; i++) {
@@ -169,6 +173,7 @@ gameTime.onTick((time) => {
   entityManager.update(time, mouse);
 
   barrel.update();
+  // emitter.update(time, mouse);
 });
 
 window.addEventListener("click", (event) => {

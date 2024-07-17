@@ -3,15 +3,28 @@ import { Container } from "pixi.js";
 import GameTime from "../GameTime";
 import Mouse from "./Mouse";
 
-interface IEntity {
-  update(time: GameTime, mouse: Mouse): void;
+export enum EntityState {
+  Idle = "idle",
+  Attack = "attack",
+  Dead = "dead",
+  Moving = "moving",
 }
 
-export default class PhysicsEntity extends Container implements IEntity {
+export default class Entity extends Container {
   rigidBody: Body;
+  state: EntityState;
+
+  health: number = 100;
+  maxHealth: number = 100;
+
+  get isAttacking() {
+    return this.state === EntityState.Attack;
+  }
 
   constructor(x: number, y: number) {
     super();
+
+    this.state = EntityState.Idle;
 
     this.rigidBody = Bodies.circle(x, y, 20, {
       frictionAir: 0.05,

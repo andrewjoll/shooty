@@ -1,5 +1,5 @@
 import { Container, Point } from "pixi.js";
-import IEntity from "./entities/PhysicsEntity";
+import Entity from "./entities/Entity";
 import { Composite, Engine, Query } from "matter-js";
 import GameTime from "./GameTime";
 import Mouse from "./entities/Mouse";
@@ -9,7 +9,7 @@ export default class EntityManager {
   container: Container;
   physics: Engine;
 
-  entities: Array<IEntity>;
+  entities: Array<Entity>;
 
   constructor(physics: Engine) {
     this.physics = physics;
@@ -17,7 +17,7 @@ export default class EntityManager {
     this.entities = [];
   }
 
-  addEntity(entity: IEntity) {
+  addEntity(entity: Entity) {
     this.entities.push(entity);
 
     Composite.add(this.physics.world, entity.rigidBody);

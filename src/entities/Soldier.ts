@@ -1,10 +1,10 @@
 import { Color, Container, Sprite, Assets, Texture, Point } from "pixi.js";
 import { clamp } from "../utils";
-import PhysicsEntity from "./PhysicsEntity";
+import Entity, { EntityState } from "./Entity";
 import GameTime from "../GameTime";
-import Enemy from "./Enemy";
 import HealthBar from "./HealthBar";
 import Mouse from "./Mouse";
+import InputManager from "../InputManager";
 
 class Head extends Container {
   helmetContainer: Container;
@@ -92,20 +92,28 @@ class Body extends Container {
 }
 
 class Gun extends Container {
+  flash: Sprite;
+
   constructor() {
     super();
 
     this.position.set(0, -60);
 
     const gun = new Sprite(Assets.get<Texture>("soldier-gun"));
-    gun.anchor.set(0.4, 0.4);
+    gun.anchor.set(0.5, 0.4);
     gun.zIndex = 5;
 
-    this.addChild(gun);
+    this.flash = new Sprite(Assets.get<Texture>("soldier-muzzleFlash"));
+    this.flash.anchor.set(0, 0.5);
+    this.flash.position.set(110, -9);
+    this.flash.alpha = 0;
+    this.flash.blendMode = "add";
+
+    this.addChild(gun, this.flash);
   }
 }
 
-export default class Soldier extends PhysicsEntity {
+export default class Soldier extends Entity {
   worldScale = 0.5;
 
   healthBar: HealthBar;
@@ -121,10 +129,11 @@ export default class Soldier extends PhysicsEntity {
   walkSpeed = 0.2;
 
   moveTarget?: Point;
-  activeEnemy?: Enemy;
 
   constructor(x: number, y: number) {
     super(x, y);
+
+    this.state = EntityState.Idle;
 
     this.idleAnimationOffset = Math.random() * 100;
     this.idleAnimationSpeed = 0.5 + Math.random() * 0.5;
@@ -149,6 +158,14 @@ export default class Soldier extends PhysicsEntity {
     this.scale.set(this.worldScale);
 
     this.position.set(x, y);
+
+    InputManager.on("attack-start", () => {
+      this.state = EntityState.Attack;
+    });
+
+    InputManager.on("attack-end", () => {
+      this.state = EntityState.Idle;
+    });
   }
 
   moveTo(target: Point) {
@@ -191,17 +208,32 @@ export default class Soldier extends PhysicsEntity {
 
   updateAnimation(time: GameTime, mouse: Mouse) {
     const dx = mouse.x - this.position.x;
-    const dy = mouse.y - this.position.y + 70 * this.worldScale;
+    const dy = mouse.y - this.position.y + 70 * this.scale.y;
     const angleToMouse = Math.atan2(dy, dx);
 
     // Gun
+    if (this.isAttacking) {
+      this.gun.flash.alpha = Math.random() < 0.5 ? 0.8 : 0;
+      this.gun.flash.scale.set(0.5 + Math.random() * 1.5);
+    } else {
+      this.gun.flash.alpha = 0;
+    }
+
     const gunMovementRange = 40 * this.worldScale;
 
-    const gunBobX = Math.cos(this.idleAnimationOffset + time.totalMs * 0.002);
+    const recoilDirection = new Point(dx, dy).normalize();
+    const recoilAmount = recoilDirection.multiplyScalar(
+      this.isAttacking ? Math.random() * 20 : 0
+    );
+
+    const gunBobX =
+      Math.cos(this.idleAnimationOffset + time.totalMs * 0.002) +
+      recoilAmount.x;
     const gunBobY =
       Math.sin(this.idleAnimationOffset + time.totalMs * 0.002) *
-      3 *
-      this.idleAnimationSpeed;
+        3 *
+        this.idleAnimationSpeed +
+      recoilAmount.y;
 
     this.gun.rotation = angleToMouse;
 
@@ -255,6 +287,7 @@ export default class Soldier extends PhysicsEntity {
   static assetBundle() {
     return [
       { alias: "gun", src: "./assets/Gun.png" },
+      { alias: "muzzleFlash", src: "./assets/MuzzleFlash.png" },
       { alias: "helmet", src: "./assets/Helmet.png" },
       { alias: "helmetMask", src: "./assets/HelmetMask.png" },
       { alias: "head", src: "./assets/Head.png" },

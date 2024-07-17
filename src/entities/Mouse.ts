@@ -1,4 +1,5 @@
 import { Container, Graphics } from "pixi.js";
+import InputManager from "../InputManager";
 
 enum CursorState {
   Move = "move",
@@ -21,13 +22,11 @@ export default class Mouse extends Container {
       this.position.set(event.clientX, event.clientY);
     });
 
-    document.addEventListener("keydown", (event) => {
-      if (event.code === "Space") {
-        this.setState(CursorState.Attack);
-      }
+    InputManager.on("attack-start", () => {
+      this.setState(CursorState.Attack);
     });
 
-    document.addEventListener("keyup", () => {
+    InputManager.on("attack-end", () => {
       this.setState(CursorState.Move);
     });
 
@@ -35,8 +34,6 @@ export default class Mouse extends Container {
   }
 
   setState(newState: CursorState) {
-    console.log("setState", newState);
-
     if (newState != this.state) {
       this.state = newState;
 
