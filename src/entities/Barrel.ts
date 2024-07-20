@@ -1,11 +1,12 @@
 import { Bodies, Body } from "matter-js";
-import { Assets, Container, Sprite, Texture } from "pixi.js";
+import { Assets, Sprite, Texture } from "pixi.js";
+import Entity from "./Entity";
 
-export default class Barrel extends Container {
+export default class Barrel extends Entity {
   rigidBody: Body;
 
   constructor(x: number, y: number) {
-    super();
+    super(x, y);
 
     this.position.set(x, y);
     this.scale.set(0.5);
@@ -18,6 +19,10 @@ export default class Barrel extends Container {
     this.rigidBody = Bodies.rectangle(x, y, 70, 30, {
       frictionAir: 0.05,
       density: 0.1,
+      inertia: Infinity,
+      plugin: {
+        entity: this,
+      },
       render: {
         fillStyle: "rgba(255, 0, 0, 0.2)",
         strokeStyle: "rgba(255, 0, 0, 0.4)",

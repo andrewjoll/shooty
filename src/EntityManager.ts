@@ -49,25 +49,44 @@ export default class EntityManager {
   }
 
   queryRay(x1: number, y1: number, x2: number, y2: number, attacker: Entity) {
+    const startPoint = new Point(x1, y1);
     const endPoint = new Point(x2, y2);
 
     const result = Query.ray(
       this.physics.world.bodies,
       { x: x1, y: y1 },
-      { x: endPoint.x, y: endPoint.y }
+      { x: endPoint.x, y: endPoint.y },
+      40
     );
 
     if (!result.length) {
       return;
     }
 
-    result.forEach((collision) => {
+    const distanceSorted = result.sort((a, b) => {
+      const aDistance = new Point(a.bodyA.position.x, a.bodyA.position.y)
+        .subtract(startPoint)
+        .magnitude();
+
+      const bDistance = new Point(b.bodyA.position.x, b.bodyA.position.y)
+        .subtract(startPoint)
+        .magnitude();
+
+      if (aDistance < bDistance) {
+        return -1;
+      } else if (bDistance > aDistance) {
+        return 1;
+      }
+
+      return 0;
+    });
+
+    for (let i = 0; i < distanceSorted.length; i++) {
+      const collision = distanceSorted[i];
+
       // ignore attacker
-      if (
-        collision.bodyA.plugin?.entity === attacker ||
-        collision.bodyB.plugin?.entity === attacker
-      ) {
-        return;
+      if (collision.bodyA.plugin?.entity === attacker) {
+        continue;
       }
 
       if (collision.bodyA.plugin?.entity) {
@@ -75,7 +94,10 @@ export default class EntityManager {
           attacker,
           new Point(x2 - x1, y2 - y1).normalize()
         );
+
+        // stop after first contact
+        return;
       }
-    });
+    }
   }
 }

@@ -159,7 +159,7 @@ entityManager.addEntity(barrel);
 app.stage.addChild(layerGround, entityManager.container, layerDebug);
 
 for (let i = 0; i < 5; i++) {
-  const enemy = new Enemy(300 + i * 100, 300 + i * 100);
+  const enemy = new Enemy(300 + i * 100, window.innerHeight / 2);
 
   entityManager.addEntity(enemy);
 }
@@ -171,7 +171,6 @@ gameTime.onTick((time) => {
 
   entityManager.update(time, mouse);
 
-  barrel.update();
   // emitter.update(time, mouse);
 });
 

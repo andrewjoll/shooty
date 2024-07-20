@@ -36,11 +36,12 @@ export default class Entity extends Container {
     this.attackPoint = Point.shared;
     this.weaponVector = Point.shared;
     this.weaponAngle = 0;
-    this.attackRange = 800;
+    this.attackRange = 400;
 
     this.rigidBody = Bodies.circle(x, y, 20, {
       frictionAir: 0.05,
       density: 0.1,
+      inertia: Infinity,
       plugin: {
         entity: this,
       },

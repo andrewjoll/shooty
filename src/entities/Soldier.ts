@@ -197,16 +197,15 @@ export default class Soldier extends Entity {
     const doubleRangePoint = rangePoint.multiplyScalar(2);
     const actualRange = rangePoint.magnitude();
 
+    this.debug.lineTo(doubleRangePoint.x, doubleRangePoint.y);
+    this.debug.stroke({ color: "rgba(0, 255, 0, 0.2)", width: 40 });
+
     this.debug.circle(doubleRangePoint.x, doubleRangePoint.y, 10);
     this.debug.fill("rgb(0, 255, 0)");
 
     // Attack range
     this.debug.circle(0, 0, actualRange * 2);
     this.debug.stroke({ color: "rgba(255, 255, 255, 0.3)", width: 3 });
-
-    // Attack angle
-    this.debug.lineTo(doubleRangePoint.x, doubleRangePoint.y);
-    this.debug.stroke({ color: "rgba(0, 255, 0, 0.5)", width: 2 });
 
     // Weapon angle
     this.debug.moveTo(0, -150 * this.scale.y);
