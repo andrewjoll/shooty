@@ -122,8 +122,6 @@ class Gun extends Container {
 }
 
 export default class Soldier extends Entity {
-  worldScale = 0.5;
-
   healthBar: HealthBar;
   head: Head;
   body: Body;
@@ -158,15 +156,16 @@ export default class Soldier extends Entity {
 
     this.healthBar = new HealthBar(80, 100);
 
-    this.debug = new Graphics();
-    this.addChild(this.debug);
-
     // Add to stage
     this.addChild(this.shadow);
     this.addChild(this.body);
     this.addChild(this.gun);
     this.addChild(this.head);
     this.addChild(this.healthBar);
+
+    this.debug = new Graphics();
+    this.debug.zIndex = 10;
+    this.addChild(this.debug);
 
     this.scale.set(this.worldScale);
 
@@ -188,12 +187,21 @@ export default class Soldier extends Entity {
   updateDebug(mouse: Mouse) {
     this.debug.clear();
 
+    // Rigid body
+    this.debug.circle(
+      0,
+      -20 / this.worldScale,
+      (this.rigidBody.circleRadius ?? 0) / this.worldScale
+    );
+    this.debug.fill("rgba(0, 255, 0, 0.1)");
+    this.debug.stroke("rgba(0, 255, 0, 0.5)");
+
     // Location
     this.debug.circle(0, 0, 10);
     this.debug.fill("rgb(255, 255, 255)");
 
     // Range clamped query trace
-    const rangePoint = this.getRangeClampedTarget(mouse.position);
+    const rangePoint = this.getRangeClampedTarget(mouse.worldPosition);
     const doubleRangePoint = rangePoint.multiplyScalar(2);
     const actualRange = rangePoint.magnitude();
 
@@ -249,13 +257,13 @@ export default class Soldier extends Entity {
 
   updateAnimation(time: GameTime, mouse: Mouse) {
     this.attackVector = new Point(
-      mouse.x - this.position.x,
-      mouse.y - this.position.y
+      mouse.worldPosition.x - this.position.x,
+      mouse.worldPosition.y - this.position.y
     ).normalize();
 
     this.weaponVector = new Point(
-      mouse.x - this.position.x,
-      mouse.y - this.position.y + 70 * this.scale.y
+      mouse.worldPosition.x - this.position.x,
+      mouse.worldPosition.y - this.position.y + 70 * this.scale.y
     ).normalize();
 
     this.weaponAngle = Math.atan2(this.weaponVector.y, this.weaponVector.x);

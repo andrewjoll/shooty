@@ -38,6 +38,22 @@ export default class Barrel extends Entity {
       this.rigidBody.position.x,
       this.rigidBody.position.y + 25
     );
+
+    this.updateDebug();
+  }
+
+  updateDebug() {
+    this.debug.clear();
+
+    // Rigid body
+    this.debug.rect(
+      -35 / this.worldScale,
+      -40 / this.worldScale,
+      70 / this.worldScale,
+      30 / this.worldScale
+    );
+    this.debug.fill("rgba(0, 255, 0, 0.1)");
+    this.debug.stroke("rgba(0, 255, 0, 0.5)");
   }
 
   setPosition(x: number, y: number) {

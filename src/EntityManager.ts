@@ -36,7 +36,7 @@ export default class EntityManager {
     const soldier = this.entities.find((entity) => entity instanceof Soldier);
 
     if (soldier && soldier.isAttacking) {
-      const target = soldier.getRangeClampedTarget(mouse.position);
+      const target = soldier.getRangeClampedTarget(mouse.worldPosition);
 
       this.queryRay(
         soldier.x,

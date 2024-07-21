@@ -1,5 +1,5 @@
 import { Bodies, Body } from "matter-js";
-import { Container, Point } from "pixi.js";
+import { Container, Graphics, Point } from "pixi.js";
 import GameTime from "../GameTime";
 import Mouse from "./Mouse";
 
@@ -11,6 +11,7 @@ export enum EntityState {
 }
 
 export default class Entity extends Container {
+  worldScale = 0.5;
   rigidBody: Body;
   state: EntityState;
 
@@ -23,12 +24,18 @@ export default class Entity extends Container {
   weaponAngle: number;
   attackRange: number;
 
+  debug: Graphics;
+
   get isAttacking() {
     return this.state === EntityState.Attack;
   }
 
   constructor(x: number, y: number) {
     super();
+
+    this.debug = new Graphics();
+    this.debug.zIndex = 10;
+    this.addChild(this.debug);
 
     this.state = EntityState.Idle;
 
@@ -57,7 +64,22 @@ export default class Entity extends Container {
     Body.setPosition(this.rigidBody, { x, y });
   }
 
-  update(time: GameTime, mouse: Mouse) {}
+  update(time: GameTime, mouse: Mouse) {
+    this.updateDebug(mouse);
+  }
+
+  updateDebug(mouse: Mouse) {
+    this.debug.clear();
+
+    // Rigid body
+    this.debug.circle(
+      0,
+      -20 / this.worldScale,
+      (this.rigidBody.circleRadius ?? 0) / this.worldScale
+    );
+    this.debug.fill("rgba(0, 255, 0, 0.1)");
+    this.debug.stroke("rgba(0, 255, 0, 0.5)");
+  }
 
   weaponHit(attacker: Entity, direction: Point) {
     Body.applyForce(

@@ -1,6 +1,7 @@
 import { Color, Container, Sprite, Assets, Texture, Point } from "pixi.js";
 import GameTime from "../GameTime";
 import Entity from "./Entity";
+import Mouse from "./Mouse";
 
 class Head extends Container {
   helmetContainer: Container;
@@ -47,8 +48,6 @@ class Body extends Container {
 }
 
 export default class Enemy extends Entity {
-  worldScale = 0.5;
-
   head: Head;
   body: Body;
 
@@ -122,8 +121,10 @@ export default class Enemy extends Entity {
     );
   }
 
-  update(time: GameTime) {
+  update(time: GameTime, mouse: Mouse) {
     this.updatePosition(time);
+
+    this.updateDebug(mouse);
   }
 
   static assetBundle() {
