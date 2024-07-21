@@ -15,7 +15,7 @@ import Viewport from "./Viewport";
 const app = new Application();
 // globalThis.__PIXI_APP__ = app;
 
-const viewport = new Viewport(app.stage, 2000, 2000);
+const viewport = new Viewport(app.stage, 3000, 2000);
 const mouse = new Mouse(viewport);
 
 // Intialize the application.

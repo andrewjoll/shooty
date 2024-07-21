@@ -2,6 +2,7 @@ import { Container, Graphics, Point } from "pixi.js";
 import Mouse from "./entities/Mouse";
 import GameTime from "./GameTime";
 import { clamp } from "./utils";
+import { quadOut } from "./easing";
 
 export default class Viewport {
   stage: Container;
@@ -57,33 +58,42 @@ export default class Viewport {
   }
 
   update(time: GameTime, mouse: Mouse) {
-    const velocity = 0.5 * time.deltaMs;
+    const velocity = 0.75 * time.deltaMs;
 
     let moveX = 0;
     let moveY = 0;
 
     // right
     if (mouse.x > this.width - this.border) {
-      moveX -= velocity;
+      moveX -= this.border - (window.innerWidth - mouse.x);
     }
 
     // left
     if (mouse.x < this.border) {
-      moveX += velocity;
+      moveX -= mouse.x - this.border;
     }
 
     // up
     if (mouse.y < this.border) {
-      moveY += velocity;
+      moveY -= mouse.y - this.border;
     }
 
     // down
     if (mouse.y > this.height - this.border) {
-      moveY -= velocity;
+      moveY -= this.border - (window.innerHeight - mouse.y);
     }
 
-    let newX = this.stage.position.x + moveX;
-    let newY = this.stage.position.y + moveY;
+    const signX = Math.sign(moveX);
+    const signY = Math.sign(moveY);
+
+    const easeX = quadOut(Math.abs(moveX) / this.border);
+    const easeY = quadOut(Math.abs(moveY) / this.border);
+
+    const easedMoveX = easeX * velocity * signX;
+    const easedMoveY = easeY * velocity * signY;
+
+    let newX = this.stage.position.x + easedMoveX;
+    let newY = this.stage.position.y + easedMoveY;
 
     const margin = 100;
 
