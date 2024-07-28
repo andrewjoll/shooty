@@ -22,7 +22,6 @@ export default class Gun extends Container {
 
     this.flash = new Sprite(Assets.get<Texture>("soldier-muzzleFlash"));
     this.flash.anchor.set(0, 0.5);
-    this.flash.position.set(120, -9);
     this.flash.alpha = 0;
     this.flash.blendMode = "add";
 
@@ -73,6 +72,8 @@ export default class Gun extends Container {
       this.targetRotation > -Math.PI + Math.PI / 4 &&
       this.targetRotation < -Math.PI / 4;
 
+    this.flash.position.set(120, -9);
+
     const moveX = clamp(
       this.owner.attackVector.x,
       -gunMovementRange,
@@ -91,7 +92,7 @@ export default class Gun extends Container {
       moveX + gunBobX,
       -moveY + gunBobY - 20 * distanceProgress
     );
-    this.body.scale.set(1, isFlipped ? -1 : 1);
+    this.scale.set(1, isFlipped ? -1 : 1);
 
     this.zIndex = isBehind ? 1 : 5;
   }

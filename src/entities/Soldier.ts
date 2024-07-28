@@ -171,7 +171,7 @@ export default class Soldier extends Entity {
     this.debug.fill("rgb(0, 255, 0)");
 
     // Attack range
-    this.debug.circle(0, 0, actualRange * 2);
+    this.debug.circle(0, 0, actualRange / this.worldScale);
     this.debug.stroke({ color: "rgba(255, 255, 255, 0.3)", width: 3 });
 
     // Weapon angle

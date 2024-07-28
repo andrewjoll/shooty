@@ -112,7 +112,7 @@ app.stage.addChild(layerGround, entityManager.container, layerDebug);
 
 for (let i = 0; i < 5; i++) {
   const enemy = new Enemy(
-    viewport.worldWidth * 0.5 - 200 - i * 50,
+    900 - i * 50,
     viewport.worldHeight * 0.5 - 200 + i * 100
   );
 

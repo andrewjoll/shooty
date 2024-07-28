@@ -1,6 +1,6 @@
 import { Color, Container, Sprite, Assets, Texture, Point } from "pixi.js";
 import GameTime from "../GameTime";
-import Entity from "./Entity";
+import Entity, { EntityState } from "./Entity";
 import Mouse from "./Mouse";
 import Gun from "./Gun";
 import { clamp } from "../utils";
@@ -76,7 +76,6 @@ export default class Enemy extends Entity {
     this.shadow.anchor.set(0.5, 0.5);
     this.shadow.zIndex = 0;
 
-    // Add to stage
     this.addChild(this.shadow);
     this.addChild(this.body);
     this.addChild(this.gun);
@@ -88,15 +87,22 @@ export default class Enemy extends Entity {
   }
 
   updatePosition(time: GameTime) {
+    // move within firing range of target
     if (this.targetEntity) {
       const distance = this.targetEntity.distanceTo(this);
+      this.moveTarget = this.targetEntity.position;
 
-      if (distance < this.sightRange && distance > this.attackRange) {
-        this.moveTarget = this.targetEntity.position;
-
+      if (distance < this.attackRangeMin) {
+        this.moveAwayFromTarget(time);
+      } else if (distance < this.sightRange) {
         this.moveTowardsTarget(time);
+      }
+
+      if (distance <= this.attackRangeMax) {
+        this.state = EntityState.Attack;
       } else {
         this.moveTarget = undefined;
+        this.state = EntityState.Idle;
       }
     }
 

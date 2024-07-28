@@ -27,7 +27,8 @@ export default class Entity extends Container {
   healthBar?: HealthBar;
 
   sightRange: number = 500;
-  attackRange: number = 300;
+  attackRangeMax: number = 400;
+  attackRangeMin: number = 200;
 
   attackVector: Point;
   attackPoint: Point;
@@ -111,6 +112,20 @@ export default class Entity extends Container {
     this.moveTarget = target;
   }
 
+  moveAwayFromTarget(time: GameTime) {
+    if (this.moveTarget) {
+      const direction = this.moveTarget.subtract(this.position);
+      const directionNormalized = direction.normalize().multiplyScalar(-1);
+
+      this.setPosition(
+        this.rigidBody.position.x +
+          directionNormalized.x * time.deltaMs * this.walkSpeed,
+        this.rigidBody.position.y +
+          directionNormalized.y * time.deltaMs * this.walkSpeed
+      );
+    }
+  }
+
   moveTowardsTarget(time: GameTime) {
     if (this.moveTarget) {
       const direction = this.moveTarget.subtract(this.position);
@@ -147,8 +162,16 @@ export default class Entity extends Container {
     this.debug.stroke("rgba(255, 255, 255, 0.5)");
 
     // Attack range
-    // this.debug.circle(0, 0, this.attackRange / this.worldScale);
-    // this.debug.stroke({ color: "rgba(255, 0, 0, 0.5)", width: 2 });
+    const attackRange = this.attackRangeMax - this.attackRangeMin;
+    this.debug.circle(
+      0,
+      0,
+      (this.attackRangeMin + attackRange * 0.5) / this.worldScale
+    );
+    this.debug.stroke({
+      color: "rgba(255, 0, 0, 0.1)",
+      width: attackRange / this.worldScale,
+    });
 
     // Target entity
     if (this.targetEntity) {
@@ -161,7 +184,7 @@ export default class Entity extends Container {
         targetPosition.y / this.worldScale
       );
 
-      if (targetDistance <= this.attackRange) {
+      if (targetDistance <= this.attackRangeMax) {
         this.debug.stroke({ color: "rgba(255, 255, 255, 0.3)", width: 10 });
       } else if (targetDistance <= this.sightRange) {
         this.debug.stroke({ color: "rgba(255, 255, 255, 0.1)", width: 10 });
@@ -183,7 +206,7 @@ export default class Entity extends Container {
       target.y - this.position.y
     );
 
-    const actualRange = Math.min(rangeVector.magnitude(), this.attackRange);
+    const actualRange = Math.min(rangeVector.magnitude(), this.attackRangeMax);
 
     return rangeVector.normalize().multiplyScalar(actualRange);
   }
