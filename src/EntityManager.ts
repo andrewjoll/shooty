@@ -31,7 +31,9 @@ export default class EntityManager {
       child.zIndex = child.position.y;
     });
 
-    this.entities.forEach((entity) => entity.update(time, mouse));
+    this.entities.forEach((entity) =>
+      entity.update(time, mouse, this.entities)
+    );
 
     const soldier = this.entities.find((entity) => entity instanceof Soldier);
 

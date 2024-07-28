@@ -2,6 +2,8 @@ import { Color, Container, Sprite, Assets, Texture, Point } from "pixi.js";
 import GameTime from "../GameTime";
 import Entity from "./Entity";
 import Mouse from "./Mouse";
+import Gun from "./Gun";
+import { clamp } from "../utils";
 
 class Head extends Container {
   helmetContainer: Container;
@@ -56,9 +58,7 @@ export default class Enemy extends Entity {
   idleAnimationOffset: number;
   idleAnimationSpeed: number;
 
-  walkSpeed = 0.2;
-
-  moveTarget?: Point;
+  walkSpeed = 0.1;
 
   constructor(x: number, y: number) {
     super(x, y);
@@ -69,6 +69,9 @@ export default class Enemy extends Entity {
     this.head = new Head();
     this.body = new Body();
 
+    this.gun = new Gun(this);
+    this.gun.position.set(0, -60);
+
     this.shadow = new Sprite(Assets.get<Texture>("soldier-shadow"));
     this.shadow.anchor.set(0.5, 0.5);
     this.shadow.zIndex = 0;
@@ -76,6 +79,7 @@ export default class Enemy extends Entity {
     // Add to stage
     this.addChild(this.shadow);
     this.addChild(this.body);
+    this.addChild(this.gun);
     this.addChild(this.head);
 
     this.scale.set(this.worldScale);
@@ -83,34 +87,15 @@ export default class Enemy extends Entity {
     this.position.set(x, y);
   }
 
-  moveTo(target: Point) {
-    this.moveTarget = target;
-  }
-
   updatePosition(time: GameTime) {
-    if (this.moveTarget) {
-      const distance = new Point(
-        this.moveTarget.x - this.position.x,
-        this.moveTarget.y - this.position.y
-      );
+    if (this.targetEntity) {
+      const distance = this.targetEntity.distanceTo(this);
 
-      const magnitude = Math.sqrt(
-        distance.x * distance.x + distance.y * distance.y
-      );
+      if (distance < this.sightRange && distance > this.attackRange) {
+        this.moveTarget = this.targetEntity.position;
 
-      const distanceNormalized = new Point(
-        distance.x / magnitude,
-        distance.y / magnitude
-      );
-
-      this.setPosition(
-        this.rigidBody.position.x +
-          distanceNormalized.x * time.deltaMs * this.walkSpeed,
-        this.rigidBody.position.y +
-          distanceNormalized.y * time.deltaMs * this.walkSpeed
-      );
-
-      if (magnitude < 10) {
+        this.moveTowardsTarget(time);
+      } else {
         this.moveTarget = undefined;
       }
     }
@@ -121,10 +106,46 @@ export default class Enemy extends Entity {
     );
   }
 
-  update(time: GameTime, mouse: Mouse) {
-    this.updatePosition(time);
+  updateAnimation(time: GameTime, mouse: Mouse) {
+    if (this.targetEntity) {
+      this.attackVector = new Point(
+        this.targetEntity.x - this.position.x,
+        this.targetEntity.y - this.position.y
+      ).normalize();
+    }
 
-    this.updateDebug(mouse);
+    // Gun
+    if (this.gun) {
+      this.gun.update(time);
+
+      if (this.targetEntity) {
+        this.gun.aimAt(this.targetEntity.position);
+      }
+    }
+
+    // Head
+    const headMoveX = clamp(this.attackVector.x * 3, -10, 10);
+    const headMoveY = clamp(this.attackVector.y * 2, -5, 5);
+
+    const isMouseRight = this.attackVector.x > 0;
+    const range = Math.abs(this.attackVector.x) / (window.innerWidth / 2);
+    const headAngle = range * (isMouseRight ? -0.2 : 0.2);
+
+    const headSway =
+      Math.cos(time.totalMs * 0.0005) * 0.1 * this.idleAnimationSpeed;
+
+    this.head.rotation = headAngle + headSway;
+    this.head.position.set(0 + headMoveX, -95 + headMoveY);
+
+    // Shadow
+    this.shadow.position.set(this.head.position.x * 0.5, headMoveY * 0.25);
+  }
+
+  update(time: GameTime, mouse: Mouse, entities: Array<Entity>) {
+    super.update(time, mouse, entities);
+
+    this.updatePosition(time);
+    this.updateAnimation(time, mouse);
   }
 
   static assetBundle() {

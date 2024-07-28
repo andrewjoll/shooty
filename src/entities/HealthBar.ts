@@ -10,10 +10,10 @@ export default class HealthBar extends Container {
   constructor(currentHealth: number, maxHealth: number = 100) {
     super();
 
+    this.zIndex = 100;
+
     this.maxHealth = maxHealth;
     this.currentHealth = currentHealth;
-
-    this.position.set(0, -220);
 
     this.background = new Graphics();
     this.foreground = new Graphics();

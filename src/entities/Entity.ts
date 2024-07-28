@@ -2,6 +2,10 @@ import { Bodies, Body } from "matter-js";
 import { Container, Graphics, Point } from "pixi.js";
 import GameTime from "../GameTime";
 import Mouse from "./Mouse";
+import Soldier from "./Soldier";
+import { getNearestEntity } from "../utils";
+import Gun from "./Gun";
+import HealthBar from "./HealthBar";
 
 export enum EntityState {
   Idle = "idle",
@@ -15,16 +19,28 @@ export default class Entity extends Container {
   rigidBody: Body;
   state: EntityState;
 
+  idleAnimationSpeed: number;
+  walkSpeed: number = 0.2;
+
   health: number = 100;
   maxHealth: number = 100;
+  healthBar?: HealthBar;
+
+  sightRange: number = 500;
+  attackRange: number = 300;
 
   attackVector: Point;
   attackPoint: Point;
+
   weaponVector: Point;
   weaponAngle: number;
-  attackRange: number;
+
+  targetEntity?: Entity;
+  moveTarget?: Point;
 
   debug: Graphics;
+
+  gun?: Gun;
 
   get isAttacking() {
     return this.state === EntityState.Attack;
@@ -32,6 +48,8 @@ export default class Entity extends Container {
 
   constructor(x: number, y: number) {
     super();
+
+    this.idleAnimationSpeed = 0.5 + Math.random() * 0.5;
 
     this.debug = new Graphics();
     this.debug.zIndex = 10;
@@ -43,7 +61,10 @@ export default class Entity extends Container {
     this.attackPoint = Point.shared;
     this.weaponVector = Point.shared;
     this.weaponAngle = 0;
-    this.attackRange = 400;
+
+    this.healthBar = new HealthBar(this.health, this.maxHealth);
+    this.healthBar.position.set(0, -220);
+    this.addChild(this.healthBar);
 
     this.rigidBody = Bodies.circle(x, y, 20, {
       frictionAir: 0.05,
@@ -64,8 +85,49 @@ export default class Entity extends Container {
     Body.setPosition(this.rigidBody, { x, y });
   }
 
-  update(time: GameTime, mouse: Mouse) {
+  findTarget(entities: Array<Entity>) {
+    const soldiers = entities.filter((entity) => entity instanceof Soldier);
+
+    // Nothing to target
+    if (!soldiers.length) {
+      this.targetEntity = undefined;
+      return;
+    }
+
+    this.targetEntity = getNearestEntity(
+      this.position,
+      soldiers,
+      this.sightRange
+    );
+  }
+
+  update(time: GameTime, mouse: Mouse, entities: Array<Entity>) {
+    this.findTarget(entities);
+
     this.updateDebug(mouse);
+  }
+
+  moveTo(target: Point) {
+    this.moveTarget = target;
+  }
+
+  moveTowardsTarget(time: GameTime) {
+    if (this.moveTarget) {
+      const direction = this.moveTarget.subtract(this.position);
+      const directionNormalized = direction.normalize();
+      const distance = direction.magnitude();
+
+      this.setPosition(
+        this.rigidBody.position.x +
+          directionNormalized.x * time.deltaMs * this.walkSpeed,
+        this.rigidBody.position.y +
+          directionNormalized.y * time.deltaMs * this.walkSpeed
+      );
+
+      if (distance < 10) {
+        this.moveTarget = undefined;
+      }
+    }
   }
 
   updateDebug(mouse: Mouse) {
@@ -79,6 +141,32 @@ export default class Entity extends Container {
     );
     this.debug.fill("rgba(0, 255, 0, 0.1)");
     this.debug.stroke("rgba(0, 255, 0, 0.5)");
+
+    // Sight range
+    this.debug.circle(0, 0, this.sightRange / this.worldScale);
+    this.debug.stroke("rgba(255, 255, 255, 0.5)");
+
+    // Attack range
+    // this.debug.circle(0, 0, this.attackRange / this.worldScale);
+    // this.debug.stroke({ color: "rgba(255, 0, 0, 0.5)", width: 2 });
+
+    // Target entity
+    if (this.targetEntity) {
+      const targetPosition = this.targetEntity.position.subtract(this.position);
+      const targetDistance = targetPosition.magnitude();
+
+      this.debug.moveTo(0, 0);
+      this.debug.lineTo(
+        targetPosition.x / this.worldScale,
+        targetPosition.y / this.worldScale
+      );
+
+      if (targetDistance <= this.attackRange) {
+        this.debug.stroke({ color: "rgba(255, 255, 255, 0.3)", width: 10 });
+      } else if (targetDistance <= this.sightRange) {
+        this.debug.stroke({ color: "rgba(255, 255, 255, 0.1)", width: 10 });
+      }
+    }
   }
 
   weaponHit(attacker: Entity, direction: Point) {
@@ -98,5 +186,9 @@ export default class Entity extends Container {
     const actualRange = Math.min(rangeVector.magnitude(), this.attackRange);
 
     return rangeVector.normalize().multiplyScalar(actualRange);
+  }
+
+  distanceTo(entity: Entity): number {
+    return entity.position.subtract(this.position).magnitude();
   }
 }
