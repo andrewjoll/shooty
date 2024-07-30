@@ -25,6 +25,7 @@ export default class Entity extends Container {
   health: number = 100;
   maxHealth: number = 100;
   healthBar?: HealthBar;
+  hitOffset: Point;
 
   sightRange: number = 500;
   attackRangeMax: number = 400;
@@ -38,6 +39,7 @@ export default class Entity extends Container {
 
   targetEntity?: Entity;
   moveTarget?: Point;
+  moveTargetTolerance: number = 10;
 
   debug: Graphics;
 
@@ -45,6 +47,10 @@ export default class Entity extends Container {
 
   get isAttacking() {
     return this.state === EntityState.Attack;
+  }
+
+  get hitPosition() {
+    return this.position.add(this.hitOffset);
   }
 
   constructor(x: number, y: number) {
@@ -62,6 +68,7 @@ export default class Entity extends Container {
     this.attackPoint = Point.shared;
     this.weaponVector = Point.shared;
     this.weaponAngle = 0;
+    this.hitOffset = new Point(0, -30);
 
     this.healthBar = new HealthBar(this.health, this.maxHealth);
     this.healthBar.position.set(0, -220);
@@ -87,6 +94,10 @@ export default class Entity extends Container {
   }
 
   findTarget(entities: Array<Entity>) {
+    if (this.targetEntity) {
+      return;
+    }
+
     const soldiers = entities.filter((entity) => entity instanceof Soldier);
 
     // Nothing to target
@@ -126,11 +137,41 @@ export default class Entity extends Container {
     }
   }
 
+  moveIntoRange(time: GameTime) {
+    if (this.moveTarget) {
+      const targetDirection = this.moveTarget.subtract(this.position);
+      const directionNormalized = targetDirection.normalize();
+      const distance = targetDirection.magnitude();
+
+      const attackRangeAverage =
+        this.attackRangeMin + (this.attackRangeMax - this.attackRangeMin) * 0.5;
+
+      const idealPosition = this.moveTarget.subtract(
+        directionNormalized.multiplyScalar(attackRangeAverage)
+      );
+
+      const idealDirectionNormalized = idealPosition
+        .subtract(this.position)
+        .normalize();
+
+      this.setPosition(
+        this.rigidBody.position.x +
+          idealDirectionNormalized.x * time.deltaMs * this.walkSpeed,
+        this.rigidBody.position.y +
+          idealDirectionNormalized.y * time.deltaMs * this.walkSpeed
+      );
+
+      if (distance <= this.moveTargetTolerance) {
+        this.moveTarget = undefined;
+      }
+    }
+  }
+
   moveTowardsTarget(time: GameTime) {
     if (this.moveTarget) {
-      const direction = this.moveTarget.subtract(this.position);
-      const directionNormalized = direction.normalize();
-      const distance = direction.magnitude();
+      const targetDirection = this.moveTarget.subtract(this.position);
+      const directionNormalized = targetDirection.normalize();
+      const distance = targetDirection.magnitude();
 
       this.setPosition(
         this.rigidBody.position.x +
@@ -139,7 +180,7 @@ export default class Entity extends Container {
           directionNormalized.y * time.deltaMs * this.walkSpeed
       );
 
-      if (distance < 10) {
+      if (distance <= this.moveTargetTolerance) {
         this.moveTarget = undefined;
       }
     }
@@ -176,6 +217,8 @@ export default class Entity extends Container {
     // Target entity
     if (this.targetEntity) {
       const targetPosition = this.targetEntity.position.subtract(this.position);
+      const targetDirection = targetPosition.normalize();
+
       const targetDistance = targetPosition.magnitude();
 
       this.debug.moveTo(0, 0);
@@ -188,6 +231,30 @@ export default class Entity extends Container {
         this.debug.stroke({ color: "rgba(255, 255, 255, 0.3)", width: 10 });
       } else if (targetDistance <= this.sightRange) {
         this.debug.stroke({ color: "rgba(255, 255, 255, 0.1)", width: 10 });
+      }
+
+      // Ideal position
+      if (this.moveTarget) {
+        const attackRangeAverage =
+          this.attackRangeMin +
+          (this.attackRangeMax - this.attackRangeMin) * 0.5;
+
+        const idealPosition = targetPosition.subtract(
+          targetDirection.multiplyScalar(attackRangeAverage)
+        );
+
+        this.debug.circle(
+          idealPosition.x / this.worldScale,
+          idealPosition.y / this.worldScale,
+          10
+        );
+        this.debug.fill({ color: "rgba(0, 255, 0, 1)" });
+
+        this.debug.lineTo(
+          idealPosition.x / this.worldScale,
+          idealPosition.y / this.worldScale
+        );
+        this.debug.stroke({ color: "rgba(0, 255, 0, 0.2)", width: 10 });
       }
     }
   }

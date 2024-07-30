@@ -90,19 +90,18 @@ export default class Enemy extends Entity {
     // move within firing range of target
     if (this.targetEntity) {
       const distance = this.targetEntity.distanceTo(this);
-      this.moveTarget = this.targetEntity.position;
 
-      if (distance < this.attackRangeMin) {
-        this.moveAwayFromTarget(time);
-      } else if (distance < this.sightRange) {
-        this.moveTowardsTarget(time);
-      }
+      this.moveIntoRange(time);
 
       if (distance <= this.attackRangeMax) {
         this.state = EntityState.Attack;
-      } else {
+      }
+
+      if (distance > this.sightRange) {
         this.moveTarget = undefined;
         this.state = EntityState.Idle;
+      } else {
+        this.moveTarget = this.targetEntity.position;
       }
     }
 
@@ -125,7 +124,7 @@ export default class Enemy extends Entity {
       this.gun.update(time);
 
       if (this.targetEntity) {
-        this.gun.aimAt(this.targetEntity.position);
+        this.gun.aimAt(this.targetEntity.hitPosition);
       }
     }
 
