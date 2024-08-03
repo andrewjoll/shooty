@@ -111,6 +111,7 @@ export default class Enemy extends Entity {
     );
   }
 
+  // @ts-ignore
   updateAnimation(time: GameTime, mouse: Mouse) {
     if (this.targetEntity) {
       this.attackVector = new Point(

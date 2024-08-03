@@ -113,6 +113,7 @@ export default class Entity extends Container {
     );
   }
 
+  // @ts-ignore
   update(time: GameTime, mouse: Mouse, entities: Array<Entity>) {
     this.findTarget(entities);
 
@@ -186,6 +187,7 @@ export default class Entity extends Container {
     }
   }
 
+  // @ts-ignore
   updateDebug(mouse: Mouse) {
     this.debug.clear();
 
@@ -259,6 +261,7 @@ export default class Entity extends Container {
     }
   }
 
+  // @ts-ignore
   weaponHit(attacker: Entity, direction: Point) {
     Body.applyForce(
       this.rigidBody,
