@@ -39,7 +39,7 @@ export default class Entity extends Container {
 
   targetEntity?: Entity;
   moveTarget?: Point;
-  moveTargetTolerance: number = 10;
+  moveTargetTolerance: number = 5;
 
   debug: Graphics;
 
@@ -142,7 +142,6 @@ export default class Entity extends Container {
     if (this.moveTarget) {
       const targetDirection = this.moveTarget.subtract(this.position);
       const directionNormalized = targetDirection.normalize();
-      const distance = targetDirection.magnitude();
 
       const attackRangeAverage =
         this.attackRangeMin + (this.attackRangeMax - this.attackRangeMin) * 0.5;
@@ -151,9 +150,16 @@ export default class Entity extends Container {
         directionNormalized.multiplyScalar(attackRangeAverage)
       );
 
+      const idealDistance = this.position.subtract(idealPosition).magnitude();
+
       const idealDirectionNormalized = idealPosition
         .subtract(this.position)
         .normalize();
+
+      if (idealDistance <= this.moveTargetTolerance) {
+        this.moveTarget = undefined;
+        return;
+      }
 
       this.setPosition(
         this.rigidBody.position.x +
@@ -161,10 +167,6 @@ export default class Entity extends Container {
         this.rigidBody.position.y +
           idealDirectionNormalized.y * time.deltaMs * this.walkSpeed
       );
-
-      if (distance <= this.moveTargetTolerance) {
-        this.moveTarget = undefined;
-      }
     }
   }
 

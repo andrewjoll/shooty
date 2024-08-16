@@ -1,5 +1,5 @@
 import "./style.css";
-import { Application, Assets, Container } from "pixi.js";
+import { Application, Assets, Container, Point } from "pixi.js";
 import "pixi.js/math-extras";
 import Soldier from "./entities/Soldier";
 import Mouse from "./entities/Mouse";
@@ -10,6 +10,9 @@ import { initDebugGraphics } from "./DebugGraphics";
 import Barrel from "./entities/Barrel";
 import EntityManager from "./EntityManager";
 import Viewport from "./Viewport";
+import { BulletTracer } from "./effects/BulletTracer";
+import { BloodSplatter } from "./effects/BloodSplatter";
+import EffectFactory from "./effects/EffectFactory";
 
 // Create a PixiJS application.
 const app = new Application();
@@ -91,25 +94,41 @@ const init = async () => {
   document.body.appendChild(app.canvas);
 
   const layerGround = new Container();
+  const layerEffects = new Container();
   const layerDebug = new Container();
 
   initDebugGraphics(layerDebug);
+
+  EffectFactory.init(layerEffects);
 
   const soldier = new Soldier(
     viewport.worldWidth * 0.5,
     viewport.worldHeight * 0.5
   );
-  const barrel = new Barrel(700, 700);
+  const barrel = new Barrel(1200, 700);
 
   layerGround.addChild(mouse);
 
   entityManager.addEntity(soldier);
   entityManager.addEntity(barrel);
 
-  // const emitter = new Emitter(soldier);
-  // emitter.position.set(soldier.position.x, soldier.position.y);
+  // const tracerEmitter = new BulletTracer(app.stage, soldier, barrel);
+  // tracerEmitter.position.set(soldier.position.x, soldier.position.y);
 
-  app.stage.addChild(layerGround, entityManager.container, layerDebug);
+  // const bloodEmitter = new BloodSplatter(
+  //   app.stage,
+  //   new Point(1800, 1000),
+  //   new Point(1, 0)
+  // );
+
+  app.stage.addChild(
+    layerGround,
+    entityManager.container,
+    layerEffects,
+    layerDebug
+    // tracerEmitter,
+    // bloodEmitter
+  );
 
   for (let i = 0; i < 5; i++) {
     const enemy = new Enemy(
@@ -127,7 +146,8 @@ const init = async () => {
 
     entityManager.update(time, mouse);
 
-    // emitter.update(time, mouse);
+    // tracerEmitter.update(time, mouse);
+    // bloodEmitter.update(time, mouse);
 
     viewport.update(time, mouse);
     mouse.update();

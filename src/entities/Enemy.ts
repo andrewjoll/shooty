@@ -95,11 +95,12 @@ export default class Enemy extends Entity {
 
       if (distance <= this.attackRangeMax) {
         this.state = EntityState.Attack;
+      } else {
+        this.state = EntityState.Idle;
       }
 
       if (distance > this.sightRange) {
         this.moveTarget = undefined;
-        this.state = EntityState.Idle;
       } else {
         this.moveTarget = this.targetEntity.position;
       }

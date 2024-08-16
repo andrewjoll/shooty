@@ -17,7 +17,7 @@ export default class Gun extends Container {
     this.owner = owner;
 
     this.body = new Sprite(Assets.get<Texture>("soldier-gun"));
-    this.body.anchor.set(0.4, 0.4);
+    this.body.anchor.set(0.5, 0.5);
     this.body.zIndex = 5;
 
     this.flash = new Sprite(Assets.get<Texture>("soldier-muzzleFlash"));
@@ -30,11 +30,9 @@ export default class Gun extends Container {
 
   aimAt(target: Point) {
     this.direction = new Point(
-      target.x - this.owner.position.x,
-      target.y -
-        this.owner.position.y -
-        (this.position.y + this.height * this.body.anchor.y)
-    ).normalize();
+      target.x - this.owner.position.x - this.position.x * this.owner.scale.x,
+      target.y - this.owner.position.y - this.position.y * this.owner.scale.y
+    );
 
     this.targetRotation = Math.atan2(this.direction.y, this.direction.x);
   }
@@ -57,9 +55,10 @@ export default class Gun extends Container {
 
     const gunMovementRange = 40;
 
-    const recoilAmount = this.owner.attackVector.multiplyScalar(
-      this.owner.isAttacking ? Math.random() * -20 : 0
-    );
+    const recoilAmount = Point.shared;
+    // const recoilAmount = this.owner.attackVector.multiplyScalar(
+    //   this.owner.isAttacking ? Math.random() * -20 : 0
+    // );
 
     const gunBobX = Math.cos(time.totalMs * 0.002) + recoilAmount.x;
     const gunBobY =
@@ -72,7 +71,7 @@ export default class Gun extends Container {
       this.targetRotation > -Math.PI + Math.PI / 4 &&
       this.targetRotation < -Math.PI / 4;
 
-    this.flash.position.set(120, -9);
+    this.flash.position.set(120, 0);
 
     const moveX = clamp(
       this.owner.attackVector.x,
@@ -92,6 +91,7 @@ export default class Gun extends Container {
       moveX + gunBobX,
       -moveY + gunBobY - 20 * distanceProgress
     );
+
     this.scale.set(1, isFlipped ? -1 : 1);
 
     this.zIndex = isBehind ? 1 : 5;

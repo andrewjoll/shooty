@@ -34,14 +34,18 @@ export const getNearestEntity = (
 
 const TAU = Math.PI * 2;
 
-export function lerpAngle(
+export const lerpAngle = (
   angleFrom: number,
   angleTo: number,
   weight: number,
   maxAngle: number = TAU
-): number {
+): number => {
   const da = (angleTo - angleFrom) % maxAngle;
   const dist = ((2 * da) % maxAngle) - da;
 
   return angleFrom + dist * weight;
-}
+};
+
+export const randomRange = (min: number, max: number): number => {
+  return Math.random() * (max - min) + min;
+};

@@ -13,6 +13,8 @@ import GameTime from "../GameTime";
 import Mouse from "./Mouse";
 import InputManager from "../InputManager";
 import Gun from "./Gun";
+import { BulletTracer } from "../effects/BulletTracer";
+import EffectFactory from "../effects/EffectFactory";
 
 class Head extends Container {
   helmetContainer: Container;
@@ -106,15 +108,19 @@ export default class Soldier extends Entity {
 
   walkSpeed = 0.2;
 
+  tracerEffect: BulletTracer;
+
   constructor(x: number, y: number) {
     super(x, y);
 
     this.state = EntityState.Idle;
 
+    this.tracerEffect = EffectFactory.createBulletTracer();
+
     this.head = new Head();
     this.body = new Body();
     this.gun = new Gun(this);
-    this.gun.position.set(0, -60);
+    this.gun.position.set(0, -80);
 
     this.shadow = new Sprite(Assets.get<Texture>("soldier-shadow"));
     this.shadow.anchor.set(0.5, 0.5);
@@ -136,10 +142,12 @@ export default class Soldier extends Entity {
 
     InputManager.on("attack-start", () => {
       this.state = EntityState.Attack;
+      this.tracerEffect.start();
     });
 
     InputManager.on("attack-end", () => {
       this.state = EntityState.Idle;
+      this.tracerEffect.stop();
     });
   }
 
@@ -161,13 +169,19 @@ export default class Soldier extends Entity {
 
     // Range clamped query trace
     const rangePoint = this.getRangeClampedTarget(mouse.worldPosition);
-    const doubleRangePoint = rangePoint.multiplyScalar(2);
     const actualRange = rangePoint.magnitude();
 
-    this.debug.lineTo(doubleRangePoint.x, doubleRangePoint.y);
+    this.debug.lineTo(
+      rangePoint.x / this.worldScale,
+      rangePoint.y / this.worldScale
+    );
     this.debug.stroke({ color: "rgba(0, 255, 0, 0.2)", width: 40 });
 
-    this.debug.circle(doubleRangePoint.x, doubleRangePoint.y, 10);
+    this.debug.circle(
+      rangePoint.x / this.worldScale,
+      rangePoint.y / this.worldScale,
+      10
+    );
     this.debug.fill("rgb(0, 255, 0)");
 
     // Attack range
@@ -175,8 +189,11 @@ export default class Soldier extends Entity {
     this.debug.stroke({ color: "rgba(255, 255, 255, 0.3)", width: 3 });
 
     // Weapon angle
-    this.debug.moveTo(0, -150 * this.scale.y);
-    this.debug.lineTo(doubleRangePoint.x, doubleRangePoint.y);
+    this.debug.moveTo(0, this.gun?.position.y ?? 0);
+    this.debug.lineTo(
+      rangePoint.x / this.worldScale,
+      rangePoint.y / this.worldScale
+    );
     this.debug.stroke({ color: "rgba(255, 255, 255, 0.5)", width: 1 });
   }
 
@@ -222,12 +239,29 @@ export default class Soldier extends Entity {
   update(time: GameTime, mouse: Mouse) {
     this.updatePosition(time);
     this.updateAnimation(time, mouse);
-    this.updateDebug(mouse);
+    // this.updateDebug(mouse);
+
+    const bulletOrigin = this.position.add(
+      new Point(0, (this.gun?.position.y ?? 0) * this.worldScale)
+    );
+
+    const bulletTarget = this.getRangeClampedTarget(mouse.worldPosition);
+
+    const bulletDirection = bulletOrigin
+      .subtract(mouse.worldPosition)
+      .normalize();
+
+    this.tracerEffect.setOrigin(
+      bulletOrigin.add(bulletDirection.multiplyScalar(-80))
+    );
+    this.tracerEffect.setTarget(mouse.worldPosition);
+
+    this.tracerEffect.update(time);
   }
 
   static assetBundle() {
     return [
-      { alias: "gun", src: "./assets/Gun.png" },
+      { alias: "gun", src: "./assets/Gun2.png" },
       { alias: "muzzleFlash", src: "./assets/MuzzleFlash.png" },
       { alias: "helmet", src: "./assets/Helmet.png" },
       { alias: "helmetMask", src: "./assets/HelmetMask.png" },
