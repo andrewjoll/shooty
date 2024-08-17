@@ -4,6 +4,8 @@ import Entity, { EntityState } from "./Entity";
 import Mouse from "./Mouse";
 import Gun from "./Gun";
 import { clamp } from "../utils";
+import { BulletTracer } from "../effects/BulletTracer";
+import EffectFactory from "../effects/EffectFactory";
 
 class Head extends Container {
   helmetContainer: Container;
@@ -60,8 +62,12 @@ export default class Enemy extends Entity {
 
   walkSpeed = 0.1;
 
+  tracerEffect: BulletTracer;
+
   constructor(x: number, y: number) {
     super(x, y);
+
+    this.tracerEffect = EffectFactory.createBulletTracer();
 
     this.idleAnimationOffset = Math.random() * 100;
     this.idleAnimationSpeed = 0.5 + Math.random() * 0.5;
@@ -95,8 +101,10 @@ export default class Enemy extends Entity {
 
       if (distance <= this.attackRangeMax) {
         this.state = EntityState.Attack;
+        this.tracerEffect.start();
       } else {
         this.state = EntityState.Idle;
+        this.tracerEffect.stop();
       }
 
       if (distance > this.sightRange) {
@@ -148,11 +156,37 @@ export default class Enemy extends Entity {
     this.shadow.position.set(this.head.position.x * 0.5, headMoveY * 0.25);
   }
 
+  updateEffects(time: GameTime) {
+    if (this.isAttacking && this.targetEntity) {
+      const gunOffset = new Point(
+        0,
+        (this.gun?.position.y ?? 0) * this.worldScale
+      );
+
+      const bulletOrigin = this.position.add(gunOffset);
+
+      const bulletTarget = this.getRangeClampedTarget(
+        this.targetEntity.hitPosition,
+        bulletOrigin.subtract(gunOffset)
+      ).add(this.position);
+
+      const bulletDirection = bulletTarget.subtract(bulletOrigin).normalize();
+
+      this.tracerEffect.setOrigin(
+        bulletOrigin.add(bulletDirection.multiplyScalar(80))
+      );
+      this.tracerEffect.setTarget(this.targetEntity.hitPosition);
+    }
+
+    this.tracerEffect.update(time);
+  }
+
   update(time: GameTime, mouse: Mouse, entities: Array<Entity>) {
     super.update(time, mouse, entities);
 
     this.updatePosition(time);
     this.updateAnimation(time, mouse);
+    this.updateEffects(time);
   }
 
   static assetBundle() {

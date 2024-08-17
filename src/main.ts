@@ -1,5 +1,5 @@
 import "./style.css";
-import { Application, Assets, Container, Point } from "pixi.js";
+import { Application, Assets, Container } from "pixi.js";
 import "pixi.js/math-extras";
 import Soldier from "./entities/Soldier";
 import Mouse from "./entities/Mouse";
@@ -10,8 +10,6 @@ import { initDebugGraphics } from "./DebugGraphics";
 import Barrel from "./entities/Barrel";
 import EntityManager from "./EntityManager";
 import Viewport from "./Viewport";
-import { BulletTracer } from "./effects/BulletTracer";
-import { BloodSplatter } from "./effects/BloodSplatter";
 import EffectFactory from "./effects/EffectFactory";
 
 // Create a PixiJS application.

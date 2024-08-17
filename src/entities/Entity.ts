@@ -272,11 +272,8 @@ export default class Entity extends Container {
     );
   }
 
-  getRangeClampedTarget(target: Point): Point {
-    const rangeVector = new Point(
-      target.x - this.position.x,
-      target.y - this.position.y
-    );
+  getRangeClampedTarget(target: Point, origin: Point = this.position): Point {
+    const rangeVector = new Point(target.x - origin.x, target.y - origin.y);
 
     const actualRange = Math.min(rangeVector.magnitude(), this.attackRangeMax);
 

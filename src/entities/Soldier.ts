@@ -236,27 +236,36 @@ export default class Soldier extends Entity {
     this.shadow.position.set(this.head.position.x * 0.5, headMoveY * 0.25);
   }
 
+  updateEffects(time: GameTime, mouse: Mouse) {
+    if (this.isAttacking) {
+      const gunOffset = new Point(
+        0,
+        (this.gun?.position.y ?? 0) * this.worldScale
+      );
+
+      const bulletOrigin = this.position.add(gunOffset);
+
+      const bulletTarget = this.getRangeClampedTarget(
+        mouse.worldPosition,
+        bulletOrigin.subtract(gunOffset)
+      ).add(this.position);
+
+      const bulletDirection = bulletTarget.subtract(bulletOrigin).normalize();
+
+      this.tracerEffect.setOrigin(
+        bulletOrigin.add(bulletDirection.multiplyScalar(80))
+      );
+      this.tracerEffect.setTarget(bulletTarget);
+    }
+
+    this.tracerEffect.update(time);
+  }
+
   update(time: GameTime, mouse: Mouse) {
     this.updatePosition(time);
     this.updateAnimation(time, mouse);
-    // this.updateDebug(mouse);
-
-    const bulletOrigin = this.position.add(
-      new Point(0, (this.gun?.position.y ?? 0) * this.worldScale)
-    );
-
-    const bulletTarget = this.getRangeClampedTarget(mouse.worldPosition);
-
-    const bulletDirection = bulletOrigin
-      .subtract(mouse.worldPosition)
-      .normalize();
-
-    this.tracerEffect.setOrigin(
-      bulletOrigin.add(bulletDirection.multiplyScalar(-80))
-    );
-    this.tracerEffect.setTarget(mouse.worldPosition);
-
-    this.tracerEffect.update(time);
+    this.updateDebug(mouse);
+    this.updateEffects(time, mouse);
   }
 
   static assetBundle() {
